@@ -1,31 +1,8 @@
 import numpy as np
+import functions
 
-def minimum(a, b, c):
-    if (a <= b and a <= c):
-        return a
-    if (b <=a and b <= c):
-        return b
-    return c
 
-def SQRdistance(x,y):
-    return np.power(np.abs(x - y), 1/2)
-def ABSdistance(x,y):
-    return np.abs(x - y)
 
-def E(X):
-
-    S = 0
-    for x in X:
-        S += x
-    return float(S)/len(X)
-
-def D(X):
-    #Despersion estimating function
-    S = 0
-    expected_value = E(X)
-    for x in X:
-        S += np.square(x - expected_value)
-    return float(S)/len(X)
 
 
 def DTW(X,Y, distance):
@@ -57,10 +34,10 @@ def DTW(X,Y, distance):
     for i in range(len(X)):
         for j in range(len(Y)):
             if distance == "abs":
-                Distance_map[i,j] = ABSdistance(X[i], Y[j])
+                Distance_map[i,j] = functions.ABSdistance(X[i], Y[j])
                 continue
             if distance == "sqr":
-                Distance_map[i,j] = SQRdistance(X[i], Y[j])
+                Distance_map[i,j] = functions.SQRdistance(X[i], Y[j])
 
     ###
     ###Generating moves matrix
@@ -76,9 +53,7 @@ def DTW(X,Y, distance):
 
     for i in range(1, len(X)):
         for j in range(1, len(Y)):
-            Moves_map[i][j] = Distance_map[i][j] + minimum(Moves_map[i - 1][j], Moves_map[i - 1][j - 1], Moves_map[i][j - 1])
-    #print(Distance_map)
-    #print(Moves_map)
+            Moves_map[i][j] = Distance_map[i][j] + functions.minimum(Moves_map[i - 1][j], Moves_map[i - 1][j - 1], Moves_map[i][j - 1])
 
     ####
     ###Generating result matrix
@@ -90,9 +65,9 @@ def DTW(X,Y, distance):
     DerivativesY = [0]
 
     for i in range(1,len(X)):
-        DerivativesX.append(16*float(X[i] - X[i - 1]))
+        DerivativesX.append(float(X[i] - X[i - 1])/2)
     for j in range(1, len(Y)):
-        DerivativesY.append(16*float(Y[j] - Y[j - 1]))
+        DerivativesY.append(float(Y[j] - Y[j - 1])/2)
 
 
 
@@ -103,18 +78,20 @@ def DTW(X,Y, distance):
     lag = 0
     lags = []
 
-    while i != 0 or j != 0:
+    while i != 0 and j != 0:
+        if i == 0 or j == 0:
+            break
         result.append([i, j])
         #min = minimum(Moves_map[i - 1][j], Moves_map[i - 1][j - 1], Moves_map[i][j - 1])
-        min = minimum(Moves_map[i - 1][j] + np.abs(DerivativesX[i - 1] - DerivativesY[j]) , Moves_map[i - 1][j - 1] + np.abs(DerivativesX[i - 1] - DerivativesY[j - 1]), Moves_map[i][j - 1] + np.abs(DerivativesX[i] - DerivativesY[j - 1]))
-        if min == Moves_map[i - 1][j - 1] + np.abs(DerivativesX[i - 1] - DerivativesY[j - 1]):
+        min = functions.minimum(Moves_map[i - 1][j] + np.abs(DerivativesX[i - 1] - DerivativesY[j]) , Moves_map[i - 1][j - 1] + np.abs(DerivativesX[i - 1] - DerivativesY[j - 1]), Moves_map[i][j - 1] + np.abs(DerivativesX[i] - DerivativesY[j - 1]))
+        if min == 0:
             i -= 1
             j -= 1
             if lag != 0:
                 lags.append(k * lag)
                 lag = 0
             continue
-        if min == Moves_map[i - 1][j] + np.abs(DerivativesX[i - 1] - DerivativesY[j]):
+        if min == -1:
             i -= 1
             if lag == -1:
                 k += 1
@@ -132,8 +109,12 @@ def DTW(X,Y, distance):
             k = 1
             lag = 1
         j -= 1
+
+
     if lag != 0:
         lags.append(k * lag)
+
+
     if i == 0 and j != 0:
         if lag == -1:
             lags.append(k * lag)
@@ -141,7 +122,9 @@ def DTW(X,Y, distance):
         while j != 0:
             result.append([0, j])
             k += 1
+            j -= 1
         lags.append(k)
+
     if j == 0 and i != 0:
         if lag == 1:
             lags.append(k * lag)
@@ -149,6 +132,7 @@ def DTW(X,Y, distance):
         while j != 0:
             result.append([i, 0])
             k += 1
+            i -= 1
         lags.append(-k)
 
 
@@ -157,3 +141,96 @@ def DTW(X,Y, distance):
     result.reverse()
 
     return result, lags
+
+def DTWsimple(X, Y, metric):
+
+    ###
+    ###Variable       | description
+    ###
+    ### X, Y         - input time series of varibles X and Y
+    ### Distance_map - matrix of distances between Xi and Yj
+    ### Moves_map    - matrix of moves
+    ### moves        - 2*m matrix that contains all moves
+    ###                move = -1 is equal to move though Y only
+    ###                move = 0 is equal to move throug X and Y simultanioysly
+    ###                move - 1 is equal to move through X only
+    ###
+    ### result       - resulting 2*m matrix, where  min(length(X) = k, length(Y) = n) <= m <= n + k
+    ### E(X)         - Expected value estimating function
+    ### D(X)         - Despersion estimating function
+
+
+    ###
+    ###Generating distance matrix
+    ###ABSmetric of x and y is |x - y|
+    ###SQRmetric of x and y is |x - y| in the power of k
+    ###
+
+    Distance_map = np.zeros((len(X), len(Y)), np.double)
+
+    for i in range(len(X)):
+        for j in range(len(Y)):
+            if metric == "abs":
+                Distance_map[i,j] = functions.ABSdistance(X[i], Y[j])
+                continue
+            if metric == "sqr":
+                Distance_map[i,j] = functions.SQRdistance(X[i], Y[j])
+
+    ###
+    ###Generating moves matrix
+    ###
+
+    Moves_map = np.zeros((len(X), len(Y)), np.double)
+    Moves_map[0][0] = Distance_map[0][0]
+    for i in range(1, len(X)):
+        Moves_map[i][0] = Distance_map[i][0] + Moves_map[i - 1][0]
+
+    for j in range(1, len(Y)):
+        Moves_map[0][j] = Distance_map[0][j] + Moves_map[0][j -1]
+
+    for i in range(1, len(X)):
+        for j in range(1, len(Y)):
+            Moves_map[i][j] = Distance_map[i][j] + functions.minimum(Moves_map[i - 1][j], Moves_map[i - 1][j - 1], Moves_map[i][j - 1])
+
+    ####
+    ###Generating result matrix
+    ###
+
+    result = []
+
+    i = len(X) - 1
+    j = len(Y) - 1
+
+    while i != 0 and j != 0:
+        if i == 0 or j == 0:
+            break
+        result.append([i, j])
+
+        min = functions.minimum(Moves_map[i - 1][j], Moves_map[i - 1][j - 1], Moves_map[i][j - 1])
+        if min == 0:
+            i -= 1
+            j -= 1
+            continue
+        if min == -1:
+            i -= 1
+            continue
+        j -= 1
+
+    if i == 0 and j != 0:
+        while j != 0:
+            j -= 1
+            result.append([0, j])
+
+
+    if j == 0 and i != 0:
+        while j != 0:
+            i -= 1
+            result.append([i, 0])
+
+
+
+    result.append([0, 0])
+
+    result.reverse()
+
+    return result

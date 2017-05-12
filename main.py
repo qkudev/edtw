@@ -1,13 +1,13 @@
 from DTWalgorithm import DTW
-from DTWalgorithm import E
-from DTWalgorithm import D
+from DTWalgorithm import DTWsimple
+import functions
 import numpy as np
 from matplotlib import pyplot as plt
 import numpy as np
 import csv
 
 
-file = open('weather2.csv', 'r')
+file = open('datasets\weather2.csv', 'r')
 reader = csv.reader(file)
 data = []
 
@@ -20,24 +20,24 @@ for row in reader:
 for i in range(1,len(data)):
     [date, temp] = data[i]
     if int(date) < 20160401:
-        data1.append(float(temp) + 50)
+        data1.append(float(temp))
     else:
         data2.append(float(temp))
 
 
 
 
-
-X = [0,0,0,0,0] +  np.cos(np.arange(3*np.pi/2, 2*np.pi, 0.2))
-Y = np.sin(np.arange(0, np.pi/2, 0.2))
+X = [0, 0, 3, 2, 2, 5, 5]
+Y = [10, 14, 7, 11, 15, 15, 15]
 #Y = data1
 #X = data2
 
 
-dtwABS, lagsABS = DTW(X, Y, "abs")
-dtwSQR, lagsSQR = DTW(X, Y, "sqr")
+#dtwABS, lagsABS = DTW(X, Y, "abs")
+#dtwSQR, lagsSQR = DTW(X, Y, "sqr")
 
-
+dtwABS = DTWsimple(X, Y, "abs")
+dtwSQR = DTWsimple(X, Y, "sqr")
 
 
 
