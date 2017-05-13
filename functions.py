@@ -7,6 +7,13 @@ def minimum(a, b, c):
         return 0
     return 1
 
+def min(a, b, c):
+    if (a <= b and a <= c):
+        return a
+    if (b <=a and b <= c):
+        return b
+    return c
+
 def SQRdistance(x,y):
     return np.power(np.abs(x - y), 1/2)
 def ABSdistance(x,y):

@@ -30,14 +30,14 @@ def DTW(X,Y, distance):
     ###
 
     Distance_map = np.zeros((len(X), len(Y)), np.double)
-
-    for i in range(len(X)):
-        for j in range(len(Y)):
-            if distance == "abs":
-                Distance_map[i,j] = functions.ABSdistance(X[i], Y[j])
-                continue
-            if distance == "sqr":
-                Distance_map[i,j] = functions.SQRdistance(X[i], Y[j])
+    if distance == "abs":
+        for i in range(len(X)):
+            for j in range(len(Y)):
+                    Distance_map[i,j] = functions.ABSdistance(X[i], Y[j])
+    else:
+        for i in range(len(X)):
+            for j in range(len(Y)):
+                    Distance_map[i,j] = functions.SQRdistance(X[i], Y[j])
 
     ###
     ###Generating moves matrix
@@ -53,7 +53,7 @@ def DTW(X,Y, distance):
 
     for i in range(1, len(X)):
         for j in range(1, len(Y)):
-            Moves_map[i][j] = Distance_map[i][j] + functions.minimum(Moves_map[i - 1][j], Moves_map[i - 1][j - 1], Moves_map[i][j - 1])
+            Moves_map[i][j] = Distance_map[i][j] + functions.min(Moves_map[i - 1][j], Moves_map[i - 1][j - 1], Moves_map[i][j - 1])
 
     ####
     ###Generating result matrix
@@ -82,8 +82,8 @@ def DTW(X,Y, distance):
         if i == 0 or j == 0:
             break
         result.append([i, j])
-        #min = minimum(Moves_map[i - 1][j], Moves_map[i - 1][j - 1], Moves_map[i][j - 1])
-        min = functions.minimum(Moves_map[i - 1][j] + np.abs(DerivativesX[i - 1] - DerivativesY[j]) , Moves_map[i - 1][j - 1] + np.abs(DerivativesX[i - 1] - DerivativesY[j - 1]), Moves_map[i][j - 1] + np.abs(DerivativesX[i] - DerivativesY[j - 1]))
+        min = functions.minimum(Moves_map[i - 1][j], Moves_map[i - 1][j - 1], Moves_map[i][j - 1])
+        #min = functions.minimum(Moves_map[i - 1][j] + np.abs(DerivativesX[i - 1] - DerivativesY[j]) , Moves_map[i - 1][j - 1] + np.abs(DerivativesX[i - 1] - DerivativesY[j - 1]), Moves_map[i][j - 1] + np.abs(DerivativesX[i] - DerivativesY[j - 1]))
         if min == 0:
             i -= 1
             j -= 1
@@ -190,7 +190,8 @@ def DTWsimple(X, Y, metric):
 
     for i in range(1, len(X)):
         for j in range(1, len(Y)):
-            Moves_map[i][j] = Distance_map[i][j] + functions.minimum(Moves_map[i - 1][j], Moves_map[i - 1][j - 1], Moves_map[i][j - 1])
+            Moves_map[i][j] = Distance_map[i][j] + functions.min(Moves_map[i - 1][j], Moves_map[i - 1][j - 1], Moves_map[i][j - 1])
+
 
     ####
     ###Generating result matrix
