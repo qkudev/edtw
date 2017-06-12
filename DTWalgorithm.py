@@ -61,13 +61,13 @@ def DTW(X,Y, distance):
 
     result = []
 
-    DerivativesX = [0]
-    DerivativesY = [0]
-
-    for i in range(1,len(X)):
-        DerivativesX.append(float(X[i] - X[i - 1])/2)
-    for j in range(1, len(Y)):
-        DerivativesY.append(float(Y[j] - Y[j - 1])/2)
+    #DerivativesX = [0]
+    #DerivativesY = [0]
+    #
+    #for i in range(1,len(X)):
+    #    DerivativesX.append(float(X[i] - X[i - 1])/2)
+    #for j in range(1, len(Y)):
+    #    DerivativesY.append(float(Y[j] - Y[j - 1])/2)
 
 
 
@@ -78,7 +78,10 @@ def DTW(X,Y, distance):
     lag = 0
     lags = []
 
+    diff = []
+
     while i != 0 and j != 0:
+        diff.append(i - j)
         if i == 0 or j == 0:
             break
         result.append([i, j])
@@ -120,6 +123,7 @@ def DTW(X,Y, distance):
             lags.append(k * lag)
             k = 1
         while j != 0:
+            diff.append(i - j)
             result.append([0, j])
             k += 1
             j -= 1
@@ -129,7 +133,8 @@ def DTW(X,Y, distance):
         if lag == 1:
             lags.append(k * lag)
             k = 1
-        while j != 0:
+        while i != 0:
+            diff.append(i - j)
             result.append([i, 0])
             k += 1
             i -= 1
@@ -140,7 +145,7 @@ def DTW(X,Y, distance):
 
     result.reverse()
 
-    return result, lags
+    return result, lags, diff
 
 def DTWsimple(X, Y, metric):
 
