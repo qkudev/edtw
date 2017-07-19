@@ -1,12 +1,7 @@
 import numpy as np
 import functions
 
-def d(X):
-    n = len(X)
-    result = []
-    for i in range(n - 1):
-        result.append(X[i + 1] - X[i])
-    return result
+
 
 def normilize(X):
     minX = min(X)
@@ -158,14 +153,7 @@ def DTW(X,Y, distance):
 
     result.reverse()
 
-    A = []
-    B = []
-
-    for i in range(len(result)):
-        A.append(result[i][0])
-        B.append(result[i][1])
-
-    return A, B, result, diff
+    return result, lags, diff
 
 def DTWsimple(X, Y, metric):
 
