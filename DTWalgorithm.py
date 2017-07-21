@@ -95,6 +95,10 @@ def DTW(X,Y, distance):
 
     while i != 0 and j != 0:
         diff.append(i - j)
+        if abs(i - j) > 12:
+            i = i - 1
+            j = j - 1
+            continue
         if i == 0 or j == 0:
             break
         result.append([i, j])

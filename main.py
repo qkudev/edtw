@@ -10,12 +10,21 @@ import csv
 from csv import writer
 import networkx as nx
 
+tau_file = open("datasets/taumin.csv", 'r')
+reader = csv.reader(tau_file)
+
+TAU = []
+for row in reader:
+    X = [int(k) for k in row]
+    TAU.append(X)
+print(TAU[1][3])
 
 file = open('datasets/glycolysis.csv', 'r')
 reader = csv.reader(file)
 data = []
 
 VARS = []
+names = ['Citr-M','AMP-M','Pi','F26BP','F16BP','DHAP','F6P','G6P','Citr-I','AMP-I']
 
 for i in range(10):
     VARS.append([])
@@ -25,54 +34,19 @@ LAGSnormal = np.zeros((10,10))
 MI = np.zeros((10,10,10))
 
 
-
+N = 0
 
 data1 = []
 data2 = []
 
-#for row in reader:
-#    data.append([row[2], row[3]])
-#
-#for i in range(1,len(data)):
-#    [date, temp] = data[i]functions.E(lagsABS)
-#    if int(date) < 20160401:
-#        data1.append(float(temp))
-#    else:
-#        data2.append(float(temp))
-
-#for row in reader:
-#    data.append([row[2], row[3]])
-#
-#for i in range(1, len(data)):
-#    [date, temp] = data[i]
-#    if int(date) > 20150401 and int(date) < 20160401:
-#        data1.append(float(temp))
-#    if int(date) > 20150101 and int(date) < 20160101:
-#        data2.append(float(temp))
 
 for row in reader:
     for i in range(10):
         VARS[i].append(float(row[i]))
 
 
-#for i in range(10):
-#    for j in range(10):
-#        X = VARS[i]
-#        Y = VARS[j]
-#        Xnormal = normilize(X)
-#        Ynormal = normilize(Y)
-#        [A, B, result, diff] = DTW(X,Y, "abs")
-#        [A, B, result, normaldiff] = DTW(Xnormal,Ynormal, "abs")
-#        lag = np.average(diff)
-#        normallag = np.average(normaldiff)
-#        k = math.floor(lag)
-#        normalk = math.floor(normallag)
-#        LAGS[i][j] = abs(k)
-#        LAGSnormal[i][j] = abs(normalk)
-#
-#        MI[i][j] = np.exp(-2*metrics.mutual_info_score(A,B))
-
-MIscore = np.zeros((10,10))
+MIscore = np.zeros((10,10), )
+LAGS_MATRIX = np.zeros((10,10))
 
 for i in range(10):
     for j in range(10):
@@ -80,49 +54,49 @@ for i in range(10):
         Y = VARS[j]
         length = len(X)
         [A, B, result, diff] = DTW(X,Y,'abs')
+        diff.sort()
+        diff_plus = []
+        diff_minus = []
+        for m in range(len(diff)):
+            if diff[m] >= 0:
+                diff_plus.append(diff[m])
+            if diff[m] <= 0:
+                diff_minus.append(diff[m])
+        Eplus = np.average(diff_plus)
+        Eminus = np.average(diff_minus)
+        E = np.average(diff)
+        if Eplus <= 1 or Eminus > -1 or abs(abs(Eminus) - Eplus) > 8:
+            E = 0
+        if abs(TAU[i][j] - 1 - abs(E)) < 5:
+            N += 1
+            print("Var: " + str(np.var(diff)) + ", +E: " + str(Eplus) + ", -E :" + str(Eminus))
+        else:
+            fg = plt.figure()
+            ax1 = fg.add_subplot(111)
+            ax1.text(0.95, 0.9,
+                     names[i] + r'$\rightarrow$' + names[j] + "\n" +
+                     #str(i) + r'$\rightarrow$' + str(j) + "\n" +
+                     "+E(" + r'$\eta$ )=' + str(Eplus) + "\n" +
+                     "-E(" + r'$\eta$ )=' + str(Eminus) + "\n" +
+                     "E(" + r'$\eta$ )=' + str(E) + "\n" +
+                     "D(" + r'$\eta$ )=' + str(np.var(diff)) + "\n" +
+                     r'$\tau_{min} = $' + str(TAU[i][j] - 1)
+                     ,
+                     verticalalignment='top', horizontalalignment='right',
+                     transform=ax1.transAxes,
+                     color='black', fontsize=15)
+            plt.hist(diff, bins=30)
+
+            ax2 = fg.add_subplot(121)
+            plt.plot(X, linewidth=2.0, label=u'first series')
+            plt.plot(Y, linewidth=2.0, label=u'second series')
+            ax2.set_color_cycle(['red'])
+            for k in range(len(result)):
+                plt.plot([result[k][0], result[k][1]], [X[result[k][0]], Y[result[k][1]]], linewidth=0.5)
+
         lag = math.floor(np.average(diff))
-        MIscore[i][j] = np.exp(-metrics.mutual_info_score(A, B))
         LAGS[i][j] = abs(lag)
 
-
-
-
-
-
-G = nx.DiGraph()
-
-G.add_node(1, label='Citr-M')
-G.add_node(2, label= 'AMP-M')
-G.add_node(3, label = 'Pi')
-G.add_node(4, label = 'F26BP')
-G.add_node(5, label = 'F16BP')
-G.add_node(6, label = 'DHAP')
-G.add_node(7, label = 'F6P')
-G.add_node(8, label = 'G6P')
-G.add_node(9, label = 'Citr-I')
-G.add_node(10, label = 'AMP-I')
-
-for i in range(1,11):
-    for j in range(1,11):
-        if LAGS[i - 1][j - 1] > 0:
-            G.add_edge(i,j, weight = MI[i - 1][j - 1] * 100, lag = LAGS[i - 1][j - 1])
-
-
-pos = nx.circular_layout(G)
-edges = G.edges()
-weights = [G[u][v]['weight'] for u,v in edges]
-labels = {}
-labels[0] = 'Citr-M'
-labels[1] = 'AMP-M'
-labels[2] = 'Pi'
-labels[3] = 'F26BP'
-labels[4] = 'F16BP'
-labels[5] = 'DHAP'
-labels[6] = 'F6P'
-labels[7] = 'G6P'
-labels[8] = 'Citr-I'
-labels[9] = 'AMP-I'
-#nx.draw(G,pos, with_labels=True, width=weights)
 
 
 lags = open("lags.csv", 'w')
@@ -165,7 +139,7 @@ Y = d(VARS[9])
 [A, B, dtwABS, movesABS ] = DTW(normilize(X), normilize(Y), "abs")
 
 k = int(np.abs(np.average(movesABS)))
-print k
+print(N)
 ABSmoves = movesABS
 
 
@@ -175,16 +149,7 @@ ABSmoves = movesABS
 
 
 
-fig1 = plt.figure()
-ax1 = fig1.add_subplot(111)
 
-plt.plot(X,linewidth=2.0, label = u'first series')
-plt.plot(Y,linewidth=2.0, label = u'second series')
-
-ax1.set_color_cycle(['red'])
-
-for i in range(len(dtwABS)):
-    plt.plot([dtwABS[i][0], dtwABS[i][1]], [X[dtwABS[i][0]], Y[dtwABS[i][1]]], linewidth=0.5)
 
 #fig2 = plt.figure()
 #ax2 = fig2.add_subplot(111)
