@@ -1,207 +1,176 @@
 from DTWalgorithm import DTW
-from DTWalgorithm import normilize
-from DTWalgorithm import d
-import math
-from sklearn import metrics
-from scipy import stats
-from matplotlib import pyplot as plt
+from DTWalgorithm import divine
 import numpy as np
+from matplotlib import pyplot as plt
 import csv
-from csv import writer
-import networkx as nx
+from sklearn import metrics
 
 
-file = open('datasets/glycolysis.csv', 'r')
+name = "glycolysis"
+
+file = open('datasets/'+ name+'.csv', 'r')
 reader = csv.reader(file)
-data = []
+for row in reader:
+    N = len(row)
+    break
+file.close()
+
+tau_file = open("datasets/taumin_" + name + ".csv", 'r')
+file = open('datasets/'+ name+'.csv', 'r')
+
+reader = csv.reader(tau_file)
+
+TAU = []
+LAGS = np.zeros((N,N))
+
+MI_tau = np.zeros((N,N))
+
+
+for row in reader:
+    X = [int(k) for k in row]
+    TAU.append(X)
+
+for i in range(N):
+    for j in range(N):
+        MI_tau[i][j] = metrics.mutual_info_score()
+
+reader = csv.reader(file)
 
 VARS = []
 
-for i in range(10):
+for i in range(N):
     VARS.append([])
 
-LAGS = np.zeros((10,10))
-LAGSnormal = np.zeros((10,10))
-MI = np.zeros((10,10,10))
 
-
-
-
-data1 = []
-data2 = []
-
-#for row in reader:
-#    data.append([row[2], row[3]])
-#
-#for i in range(1,len(data)):
-#    [date, temp] = data[i]functions.E(lagsABS)
-#    if int(date) < 20160401:
-#        data1.append(float(temp))
-#    else:
-#        data2.append(float(temp))
-
-#for row in reader:
-#    data.append([row[2], row[3]])
-#
-#for i in range(1, len(data)):
-#    [date, temp] = data[i]
-#    if int(date) > 20150401 and int(date) < 20160401:
-#        data1.append(float(temp))
-#    if int(date) > 20150101 and int(date) < 20160101:
-#        data2.append(float(temp))
+K = np.zeros(5)
 
 for row in reader:
-    for i in range(10):
+    for i in range(N):
         VARS[i].append(float(row[i]))
 
-
-#for i in range(10):
-#    for j in range(10):
-#        X = VARS[i]
-#        Y = VARS[j]
-#        Xnormal = normilize(X)
-#        Ynormal = normilize(Y)
-#        [A, B, result, diff] = DTW(X,Y, "abs")
-#        [A, B, result, normaldiff] = DTW(Xnormal,Ynormal, "abs")
-#        lag = np.average(diff)
-#        normallag = np.average(normaldiff)
-#        k = math.floor(lag)
-#        normalk = math.floor(normallag)
-#        LAGS[i][j] = abs(k)
-#        LAGSnormal[i][j] = abs(normalk)
-#
-#        MI[i][j] = np.exp(-2*metrics.mutual_info_score(A,B))
-
-MIscore = np.zeros((10,10))
-
-for i in range(10):
-    for j in range(10):
+for i in range(N):
+    for j in range(N):
         X = VARS[i]
         Y = VARS[j]
         length = len(X)
-        [A, B, result, diff] = DTW(X,Y,'abs')
-        lag = math.floor(np.average(diff))
-        MIscore[i][j] = np.exp(-metrics.mutual_info_score(A, B))
-        LAGS[i][j] = abs(lag)
+        [A, B, result, diff] = DTW(X,Y, "abs")
+        diff.sort()
+        [Eplus, Eminus] = divine(diff)
+        Eplus = np.average(Eplus)
+        Eminus = np.average(Eminus)
+        E = np.average(diff)
+        d = 50
+        while d > 0.1:
+            last = E
+            if E >= 0:
+                q = int(np.floor(E))
+                Q = int(len(diff) - 1 - q)
+                Iter = diff[:Q]
+                E = np.average(Iter)
+            else:
+                q = np.floor(np.abs(E))
+                Q = int(len(diff) - q - 1)
+                Iter = diff[int(q):]
+                E = np.average(Iter)
+            d = np.abs(last - E)
+        if Eplus <= 1 or Eminus > -1 or abs(abs(Eminus) - Eplus) > 8:
+            E = 0
+        d = abs(TAU[i][j] - 1 - abs(E))
+        for q in range(5):
+            if d < q + 1:
+                K[q] += 1
+        LAGS[i][j] = np.around(E)
+
+        #if np.abs(E - TAU[i][j]) < 5 and TAU[i][j] != 1:
+        #if i == 0 and j == 1:
+        fg = plt.figure()
+
+        plt.subplot(211)
+        plt.title("Среднее:" + str(np.average(diff)) + ", Тау: " + str(TAU[i][j] - 1))
+        #ax1 = fg.add_subplot(111)
+        #ax1.text(0.95, 0.9,
+        #         'G'+str(i) + r'$\rightarrow$' + 'G'+str(j) + "\n" +
+        #         #str(i) + r'$\rightarrow$' + str(j) + "\n" +
+        #         #"+E(" + r'$\eta$ )=' + str(Eplus) + "\n" +
+        #         #"-E(" + r'$\eta$ )=' + str(Eminus) + "\n" +
+        #         "E(" + r'$\eta$ )=' + str(E) + "\n" +
+        #         #"D(" + r'$\eta$ )=' + str(np.var(diff)) + "\n" +
+        #         r'$\tau_{min} = $' + str(TAU[i][j] - 1)
+        #         ,
+        #         verticalalignment='top', horizontalalignment='right',
+        #         transform=ax1.transAxes,
+        #         color='black', fontsize=15)
+        plt.hist(diff, bins=30)
+
+        #ax2 = fg.add_subplot(121)
+        plt.subplot(212)
+        plt.plot(X, linewidth=2.0, label=u'first series')
+        plt.plot(Y, linewidth=2.0, label=u'second series')
+
+        #ax2.set_color_cycle(['red'])
+        for k in range(len(result)):
+            plt.plot([result[k][0], result[k][1]], [X[result[k][0]], Y[result[k][1]]],color='r', linewidth=0.5)
 
 
 
+for i in range(5):
+    print(str(int(np.floor(K[i]*100/(N*N)))) + '%,\t')
 
-
-
-G = nx.DiGraph()
-
-G.add_node(1, label='Citr-M')
-G.add_node(2, label= 'AMP-M')
-G.add_node(3, label = 'Pi')
-G.add_node(4, label = 'F26BP')
-G.add_node(5, label = 'F16BP')
-G.add_node(6, label = 'DHAP')
-G.add_node(7, label = 'F6P')
-G.add_node(8, label = 'G6P')
-G.add_node(9, label = 'Citr-I')
-G.add_node(10, label = 'AMP-I')
-
-for i in range(1,11):
-    for j in range(1,11):
-        if LAGS[i - 1][j - 1] > 0:
-            G.add_edge(i,j, weight = MI[i - 1][j - 1] * 100, lag = LAGS[i - 1][j - 1])
-
-
-pos = nx.circular_layout(G)
-edges = G.edges()
-weights = [G[u][v]['weight'] for u,v in edges]
-labels = {}
-labels[0] = 'Citr-M'
-labels[1] = 'AMP-M'
-labels[2] = 'Pi'
-labels[3] = 'F26BP'
-labels[4] = 'F16BP'
-labels[5] = 'DHAP'
-labels[6] = 'F6P'
-labels[7] = 'G6P'
-labels[8] = 'Citr-I'
-labels[9] = 'AMP-I'
-#nx.draw(G,pos, with_labels=True, width=weights)
-
-
-lags = open("lags.csv", 'w')
-
-Writer = writer(lags)
-
-for i in range(10):
-    row = LAGS[i]
-    Writer.writerow(row)
-lags.close()
-
-lagsnormal = open('lagsnormal.csv', 'w')
-
-Writer = writer(lagsnormal)
-
-for i in range(10):
-    row = LAGSnormal[i]
-    Writer.writerow(row)
-lagsnormal.close()
-
-
-lagsout1 = open("lagsout1.csv", 'w')
-X = VARS[0]
-Y = VARS[9]
-
-[A, B, result, diff] = DTW(X,Y,'abs')
-lagswriter = writer(lagsout1)
-lagswriter.writerow(diff)
-lagsout1.close()
-
-
-MIout = open('MIout.csv', 'w')
-Writer = writer(MIout)
-
-for row in MIscore:
-    Writer.writerow(row)
-MIout.close()
-X = d(VARS[0])
-Y = d(VARS[9])
-[A, B, dtwABS, movesABS ] = DTW(normilize(X), normilize(Y), "abs")
-
-k = int(np.abs(np.average(movesABS)))
-print k
-ABSmoves = movesABS
-
-
-#dtwABS = DTWsimple(X, Y, "abs")
-#dtwSQR = DTWsimple(X, Y, "sqr")
-
-
-
-
-fig1 = plt.figure()
-ax1 = fig1.add_subplot(111)
-
-plt.plot(X,linewidth=2.0, label = u'first series')
-plt.plot(Y,linewidth=2.0, label = u'second series')
-
-ax1.set_color_cycle(['red'])
-
-for i in range(len(dtwABS)):
-    plt.plot([dtwABS[i][0], dtwABS[i][1]], [X[dtwABS[i][0]], Y[dtwABS[i][1]]], linewidth=0.5)
-
-#fig2 = plt.figure()
-#ax2 = fig2.add_subplot(111)
-
-#plt.plot(X, linewidth=2.0)
-#plt.plot(Y, linewidth=2.0)
-
-#ax2.set_color_cycle(['red'])
-
-
-#for i in range(len(dtwSQR)):
-#    plt.plot([dtwSQR[i][0], dtwSQR[i][1]], [X[dtwSQR[i][0]], Y[dtwSQR[i][1]]], linewidth=0.5)
+#lagsout = open("Output/lagsout_" + name + ".csv", 'w')
+#Writer = csv.writer(lagsout)
 #
-#ax1.set_title(u'absolute metrics')
-#ax2.set_title(u'square metrics')
+#for row in LAGS:
+#    Writer.writerow(row)
+#lagsout.close()
+
+
+
 plt.show()
 
 
 
+#Accuracy for small_chain:      75%,    81%,    87%,    100%,   100%
+#if not zeroing:                62%,    93%,    100%,   100%,   100%
 
+#Accuracy for mapk:             79%,    88%,    91%,    94%,    97%
+#if not zeroing:                17%,    22%,    22%,    24%,    25%
+
+#Accuracy for irma_on_off:      60%,    68%,    76%,    76%,    76%
+#if not zeroing:                44%,    52%,    60%,    60%,    60%
+
+#Accuracy for glycolysis:       76%,    80%,    82%,    85%,    89%
+#if not zeroing:                59%,    66%,    67%,    73%,    76%
+
+#Accuracy for enzyme_cat_chain: 82%,    96%,    96%,    96%,    96%
+#if not zeroing:                54%,    67%,    70%,    75%,    75%
+
+#Accuracy for dream4_100:       34%,    44%,    53%,    60%,    66%
+#if not zeroing:                9%,     16%,	22%,	28%,	34%
+
+#Accuracy for dream4_10:        44%,    57%,    66%,    69%,    74%
+#if not zeroing:                16%,    27%,    33%,    34%,    40%
+
+####
+####For taumax == 30:
+####
+
+#Accuracy for small_chain:      75%,    81%,    87%,    100%,   100%
+#if not zeroing:                62%,    93%,    100%,   100%,   100%
+
+#Accuracy for mapk:             72%,    81%,    82%,    85%,    88%
+#if not zeroing:                17%,    22%,    22%,    24%,    25%
+
+#Accuracy for irma_on_off:      60%,    68%,    76%,    76%,    76%
+#if not zeroing:                44%,    52%,    60%,    60%,    60%
+
+#Accuracy for glycolysis:       65%,    66%,    68%,    70%,    74%
+#if not zeroing:                59%,    66%,    67%,    73%,    76%
+
+#Accuracy for enzyme_cat_chain: 82%,    96%,    96%,    96%,    100%
+#if not zeroing:                54%,    67%,    70%,    75%,    75%
+
+#Accuracy for dream4_100:       13%,    18%,    22%,    25%,    28%
+#if not zeroing:                9%,     16%,	22%,	28%,	34%
+
+#Accuracy for dream4_10:        26%,    32%,    37%,    40%,    40%
+#if not zeroing:                16%,    27%,    33%,    34%,    40%
