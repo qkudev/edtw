@@ -1,6 +1,19 @@
-from numpy import abs, power, min, zeros, float64, array, sum, log2, mean, logical_and
-from sklearn.metrics import mutual_info_score
+from numpy import abs, power, min, zeros, float64, array, sum, log2, mean, logical_and, exp
+from sklearn.metrics import mutual_info_score as I
 from time import time
+from numpy import average as E
+
+
+def average_nozero(X):
+    n = 1
+    sum = 0.
+
+    for x in X:
+        sum += x
+        if x != 0 : n += 1
+
+    return sum/n
+
 
 def entropy(X, Y):
     probs = []
@@ -9,30 +22,14 @@ def entropy(X, Y):
 
     return sum(-p * log2(p) for p in probs)
 
+
 def divine(X):
     result_nonnegative = []
     result_nonpositive = []
-
     for x in X:
-        if x >= 0:
-            result_nonnegative.append(x)
-        if x <= 0:
-            result_nonpositive.append(x)
+        if x >= 0:  result_nonnegative.append(x)
+        if x <= 0:  result_nonpositive.append(x)
     return [result_nonnegative, result_nonpositive]
-
-
-def lag_by_I(X,Y, max, T=False):
-    ctime = time()
-
-    MIN = mutual_info_score(X,Y)
-    lag = 0
-    for i in range(1,max):
-        MI = mutual_info_score(X[i:], Y[:len(Y) - i])
-        if MI < MIN:
-            MIN = MI
-            lag = i
-    if T: return [lag, time() - ctime]
-    return lag
 
 
 def step(left, left_up, up):
@@ -42,16 +39,33 @@ def step(left, left_up, up):
     return array([0,1])
 
 
-def DTW(X,Y, distance):
+def MI_lag(X, Y, max, T=False):
+    ctime = time()
+    min_dist = exp(-I(X, Y))
+    lag = 0
+
+    for i in range(1, max):
+        dist_lag = exp(-I(X[i:], Y[:len(Y) - i]))
+        if dist_lag < min_dist:
+            min_dist = dist_lag
+            lag = i
+
+    if T: return [lag, time() - ctime]
+    return lag
+
+
+def DTW(X,Y, distance, lag=False, T=False):
+    ctime = time()
     D = zeros((len(X), len(Y)), dtype=float64)
     p = array([len(X) - 1, len(Y) - 1])
     result = []
 
     for i in range(len(X)):
         for j in range(len(Y)):
-            D[i,j] = power(abs(X[i] - Y[j]), distance) + \
-                     (i==0 and j!=0)*D[0,j-1] + (j==0 and i!=0)*D[i-1,0] + \
-                     (i!=0 and j!=0)*min([ D[i - 1][j], D[i - 1][j - 1], D[i][j - 1] ] )
+            D[i,j] = power(abs(X[i] - Y[j]), distance)
+            D[i,j] += (i==0 and j!=0)*D[0,j-1]
+            D[i,j] += (i!=0 and j==0)*D[i-1,0]
+            D[i,j] += (i!=0 and j!=0)*min([ D[i - 1][j], D[i - 1][j - 1], D[i][j - 1] ] )
 
 
     while p[0] != 0 and p[1] != 0:
@@ -69,7 +83,14 @@ def DTW(X,Y, distance):
         else: p[1] -= 1
 
 
-    result.append([p[0], p[1]])
+    result.append([0, 0])
     result.reverse()
 
+    if lag:
+        diffs = []
+        for r in result:    diffs.append(r[0] - r[1])
+        if T: return [average_nozero(diffs), time() - ctime]
+        return average_nozero(diffs)
+
+    if T: return [result, time() - ctime]
     return result

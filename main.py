@@ -48,7 +48,6 @@ for i in range(N):
         X = VARS[i]
         Y = VARS[j]
         result = DTW(X, Y, 1)
-        if i ==1 and j ==0: print(result)
         for pair in result: diff.append(pair[0] - pair[1])
         diff.sort()
 
