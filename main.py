@@ -14,8 +14,6 @@ def divine(X):
             result_nonpositive.append(x)
     return [result_nonnegative, result_nonpositive]
 
-#def iterative_estimating(Array):
-
 
 diff = []; TAU = []; VARS = []
 name = "glycolysis"
