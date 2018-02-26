@@ -1,4 +1,4 @@
-from DTWalgorithm import DTW
+from functions import DTW
 import csv
 from matplotlib import pyplot as plt
 from numpy import zeros, average, abs, floor, around

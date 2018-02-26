@@ -1,5 +1,20 @@
-from numpy import abs, power, min, zeros, float64, array
+from numpy import abs, power, min, zeros, float64, array, sum, log2, mean, logical_and
+from sklearn.metrics import mutual_info_score
 
+def entropy(X, Y):
+    probs = []
+    for c1 in set(X):
+        for c2 in set(Y):
+            probs.append(mean(logical_and(X == c1, Y == c2)))
+
+    return sum(-p * log2(p) for p in probs)
+
+def lag_by_I(X,Y, max):
+    MIN = mutual_info_score(X,Y); lag = 0
+    for i in range(1,max):
+        if mutual_info_score(X[i:], Y[:len(Y) - i - 1]) < MIN: lag = i
+
+    return lag
 
 def step(left, left_up, up):
 
