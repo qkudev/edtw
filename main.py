@@ -1,7 +1,6 @@
 from DTWalgorithm import DTW
 import csv
 from matplotlib import pyplot as plt
-from sklearn import metrics
 from numpy import zeros, average, abs, floor, around
 
 def divine(X):
@@ -14,6 +13,9 @@ def divine(X):
         if x <= 0:
             result_nonpositive.append(x)
     return [result_nonnegative, result_nonpositive]
+
+#def iterative_estimating(Array):
+
 
 diff = []; TAU = []; VARS = []
 name = "glycolysis"
@@ -48,6 +50,7 @@ for i in range(N):
         X = VARS[i]
         Y = VARS[j]
         result = DTW(X, Y, 1)
+        if i ==1 and j ==0: print(result)
         for pair in result: diff.append(pair[0] - pair[1])
         diff.sort()
 
@@ -59,16 +62,11 @@ for i in range(N):
 
         while d > 0.1:
             last = E
-            if E >= 0:
-                q = int(floor(E))
-                Q = len(diff) - 1 - q
-                Iter = diff[:Q]
-                E = average(Iter)
-            else:
-                q = int(floor(-E))
-                Q = len(diff) - q - 1
-                Iter = diff[int(q):]
-                E = average(Iter)
+            q = int(abs(E))
+            Q = len(diff) - q - 1
+            if E >= 0:  Iter = diff[:Q]
+            else:       Iter = diff[q:]
+            E = average(Iter)
             d = abs(last - E)
 
 
@@ -84,7 +82,7 @@ for i in range(N):
         # fg = plt.figure()
         #
         # plt.subplot(211)
-        # plt.title("Среднее:" + str(np.average(diff)) + ", Тау: " + str(TAU[i][j] - 1))
+        # plt.title("Среднее:" + str(average(diff)) + ", Тау: " + str(TAU[i][j] - 1))
         # #ax1 = fg.add_subplot(111)
         # #ax1.text(0.95, 0.9,
         # #         'G'+str(i) + r'$\rightarrow$' + 'G'+str(j) + "\n" +
@@ -111,6 +109,10 @@ for i in range(N):
 
 for i in range(5): print(str(int(floor(K[i]*100/(N*N)))) + '%,\t')
 
+
+
+#plt.show()
+
 #lagsout = open("Output/lagsout_" + name + ".csv", 'w')
 #Writer = csv.writer(lagsout)
 #
@@ -118,7 +120,6 @@ for i in range(5): print(str(int(floor(K[i]*100/(N*N)))) + '%,\t')
 #    Writer.writerow(row)
 #lagsout.close()
 
-#plt.show()
 
 
 
