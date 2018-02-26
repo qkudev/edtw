@@ -4,32 +4,12 @@ from time import time
 from numpy import average as E
 
 
-def average_nozero(X):
-    n = 1
-    sum = 0.
-
-    for x in X:
-        sum += x
-        if x != 0 : n += 1
-
-    return sum/n
-
-
 def entropy(X, Y):
     probs = []
     for c1 in set(X):
         for c2 in set(Y): probs.append(mean(logical_and(X == c1, Y == c2)))
 
     return sum(-p * log2(p) for p in probs)
-
-
-def divine(X):
-    result_nonnegative = []
-    result_nonpositive = []
-    for x in X:
-        if x >= 0:  result_nonnegative.append(x)
-        if x <= 0:  result_nonpositive.append(x)
-    return [result_nonnegative, result_nonpositive]
 
 
 def step(left, left_up, up):
@@ -89,8 +69,17 @@ def DTW(X,Y, distance, lag=False, T=False):
     if lag:
         diffs = []
         for r in result:    diffs.append(r[0] - r[1])
-        if T: return [average_nozero(diffs), time() - ctime]
-        return average_nozero(diffs)
+        if T: return [E(diffs), time() - ctime]
+        return E(diffs)
 
     if T: return [result, time() - ctime]
     return result
+
+
+def path_lag(path):
+    average = 0.
+
+    for p in path:
+        average += p[0] - p[1]
+
+    return average/len(path)
