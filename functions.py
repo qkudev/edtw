@@ -38,23 +38,48 @@ def path_lag(path):
     lag = 0
     sum = 0.;
     k = 0
+    MAX = 0
 
     for p in path:
         difference = abs(p[0] - p[1])
         if difference == 0: k += 1
+        if abs(MAX) < difference:
+            MAX = p[0] - p[1]
         sum += difference
         lag = sum/(len(path) - k)
 
-    sum = 0.;
-    k = 0
+    # for i in range(int(lag/2), len(path) - int(lag/2)):
+    #     difference = abs(path[i][0] - path[i][1])
+    #     if difference == 0: k += 1
+    #     sum += difference
+    #     lag = sum / (len(path) -int(lag) -k)
 
-    for i in range(int(lag/2), len(path) - int(lag/2)):
-        difference = abs(path[i][0] - path[i][1])
-        if difference == 0: k += 1
-        sum += difference
-        lag = sum / (len(path) -int(lag) -k)
+    return [ lag, MAX ]
 
-    return lag
+def path_lag2(path):
+    lags = []
+    lag = []
+    MAX = 0
+
+    for p in path:
+        difference = abs(p[0] - p[1])
+
+        if difference == 0 and len(lag) != 0:
+            lags.append(np.mean(lag))
+            lag = []
+        else:
+            lag.append(difference)
+        if abs(MAX) < difference:
+            MAX = p[0] - p[1]
+
+
+        # for i in range(int(lag/2), len(path) - int(lag/2)):
+        #     difference = abs(path[i][0] - path[i][1])
+        #     if difference == 0: k += 1
+        #     sum += difference
+        #     lag = sum / (len(path) -int(lag) -k)
+
+    return [lags, MAX]
 
     # for p in path:
     #     sum += p[0] - p[1]

@@ -52,8 +52,9 @@ Y = []; Y.extend(data[1]); Y.extend(data[2])
 X = normilize(X); Y = normilize(Y)
 
 k = 10
+writer.writerow(["real", "Mutual Info", "Mean align", "Max align"])
 
-while k < 125:
+while k < 80:
     row = [k]
 
     A = X[:365]; B = Y[k:365+k]
@@ -68,11 +69,12 @@ while k < 125:
     ctime = time()
     [dist, path] = FDTW(A,B, dist=euclidean)
 
-    L2 = path_lag(path)
+    [L2, L3] = path_lag(path)
     t2 = time() - ctime
     err2 = abs(k - L2) / k
+    err3 = abs(k - L3) / k
     #print("DTW lag: {:.2f} \nDTW time: {:.2f}s \n".format(L2, time() - ctime))
-    row = [k,err1,err2, L1, L2,t1,t2]
+    row = [k,err1,err2, err3]
     writer.writerow(row)
     k += 10
 
