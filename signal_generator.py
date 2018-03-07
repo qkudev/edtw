@@ -1,7 +1,8 @@
 import csv
 import numpy as np
 from scipy import stats
-from DTWalgorithm import DTW
+from fastdtw import fastdtw as FDTW
+from scipy.spatial.distance import euclidean
 import random
 
 ###
@@ -39,7 +40,15 @@ for i in range(K):
     r = stats.norm.rvs(size = N)
     for j in range(N):
         random_series[j] = random_series[j] + r[j]/10
-    [A, B, result, diff] = DTW(nolag_series, random_series, "abs")
+    [dist, path] = FDTW(nolag_series, random_series, dist=euclidean)
+    A = []; B = []; diff = []
+
+    for p in path:
+        A.append(p[0])
+        B.append([1])
+        diff = p[0] - p[1]
+        result = path
+
     E = np.abs(np.average(diff))
     #print("Average: " + str(E) + "    Real generated lag: " + str(lag))
     estimated_lag = (np.floor(E)) * 2
