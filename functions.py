@@ -30,18 +30,19 @@ def origin(X,Y, lagmax):
             Imax = I
     return [result, Imax, lag]
 
-def bins(series, res= 30):
-    n  = len(series)
-    while n % res != 0: res -= 1
-    binned = []
-    for i in range(n // res):
-        bin = []
-        for j in range(res):
-            bin.append(series[i * res + j])
 
+def bins(series, resolution = 30):
+
+    n  = len(series)
+    binned = []
+
+    for i in range(n // resolution):
+        bin = []
+        for j in range(resolution): bin.append( series[i * resolution + j] )
         binned.append(bin)
 
     return binned
+
 
 def EMC(X, Y):
     return np.exp(-MI(X,Y))

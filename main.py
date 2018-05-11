@@ -40,5 +40,54 @@ resolution = 5
 
 ###############################################
 
-lag = 0
-A =
+Y = Y[:len(X)]
+n = 5
+m = 7
+X_binned = []; Y_binned = []
+
+while X:
+    bin = []
+    for i in range(n):
+        element = X.pop()
+        bin.append(element)
+    X_binned.append(bin)
+
+while Y:
+    bin = []
+    for i in range(m):
+        element = X.pop()
+        bin.append(element)
+    Y_binned.append(bin)
+
+D = zeros((n,m))
+
+
+#       step 1
+#       Distance map comstructing
+#################################
+
+for i in range(n):
+    for j in range(m):
+        D[i,j] = np.exp(-MI(X_binned[i], Y_binned[j]))
+
+#       step 2
+#       Moves map constructing
+##############################
+
+
+
+
+
+
+
+
+
+
+
+i = n - 1; j = m-1
+
+
+
+
+
+
