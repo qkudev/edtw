@@ -10,6 +10,7 @@ filename = 'datasets/weather/CF-moscow-20120101-20141231.csv'
 input = open(filename, 'r')
 reader = csv.reader(input)
 data = []
+#plt.ion()
 
 for year in range(2012, 2015):
     reader = csv.reader(input)
@@ -39,21 +40,27 @@ while lag < 51:
 
     X = bins(A, resolution=resolution)
     Y = bins(B[lag:360+lag], resolution=resolution)
-    W = Hdtw(X, Y, resolution=resolution)
+    [W, Map] = Hdtw(X, Y, resolution=resolution)
     L1 = resolution*np.abs(lag_by_path(W))
-    relerr1 = np.abs(lag - L1) / (lag + 1)
-    print("lag = {}, L = {:.2f}, relerr = {:.3}".format(lag, L1, relerr1))
 
-    # if relerr1 < 0.2: color = 'g'
-    # else: color = 'b'
-    RELS.append(relerr1); N+=1
+    relerr = np.abs(lag - L1) / lag
+
+
+    if relerr < 0.2: color = 'g'
+    else: color = 'b'
+    RELS.append(relerr)
+    var = np.var([(w[0] - w[1]) for w in W])
+    VARS.append(var)
+    print("Variance = {:.2f}, RelError = {}%".format(var, int(relerr * 100)))
+
     # fig = plt.figure()
     # X_mean = [np.mean(x) for x in X]
     # Y_mean = [np.mean(y) for y in Y]
-
+    # LAGS = [np.abs(w[0] - w[1]) for w in W]
     # plt.hist(LAGS, color=color)
-    # plt.title("{}, {:.2f}, {:.3f}".format(lag, L1, relerr1))
-
+    # #plt.title("{}, {:.2f}, {:.3f}".format(lag, L1, relerr1))
+    # plt.title("RelError ~ " + str(int(relerr1*100)) + "%")
+    #
     # fig = plt.figure()
     # plt.plot(X_mean)
     # plt.plot(Y_mean)
@@ -61,10 +68,15 @@ while lag < 51:
     #     plt.plot([w[0], w[1]], [X_mean[w[0]], Y_mean[w[1]]], color='r', linewidth=0.5)
     lag += 1
 
-
+fig = plt.figure()
 plt.hist(RELS)
+print("Mean Rel. Error: \t\t" + str(int(np.mean(RELS)*100)) + "%")
+print("Mean Variance: \t\t\t{:.2f}".format(np.mean(VARS)))
+fig = plt.figure()
+plt.scatter(VARS, RELS)
+
 plt.show()
-print(REL/N)
+
 
 
 

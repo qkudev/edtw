@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.metrics import mutual_info_score as I
+from scipy.stats import entropy
 
 def d(X,Y): return I(X,X) + I(Y,Y) - 2*I(X,Y)
 
