@@ -1,19 +1,10 @@
 import numpy as np
 import csv
 from datetime import date
-from sklearn.metrics import mutual_info_score as MI
-from numpy import zeros, mean
-from fastdtw import fastdtw as FDTW
 from matplotlib import pyplot as plt
 from matplotlib import cm
-from numpy.random import normal
-from scipy.spatial.distance import euclidean
-from functions import origin, bins, EMC, nozero_mean, MI_lag, subsets, normalize
-import fractions
-import pandas as pd
-from scipy.stats import entropy
-from scipy import stats
-import scipy as sp
+from functions import Hdtw, bins, lag_by_path
+
 
 filename = 'datasets/weather/CF-moscow-20120101-20141231.csv'
 input = open(filename, 'r')
@@ -33,61 +24,47 @@ for year in range(2012, 2015):
         if date1 <= DATE <= date2:  X.append(AVRG_C)
     data.append(X)
 input.close()
-X = data[0]
-Y = []; Y.extend(data[1]); Y.extend(data[2])
 
-resolution = 5
+A = data[0][:360]
+B = []; B.extend(data[1]); B.extend(data[2])
 
-###############################################
+resolution = 10
+lag = 11
+N = 0
+M = 0
+REL = 0
+RELS = []
+VARS = []
+while lag < 51:
 
-Y = Y[:len(X)]
-n = 5
-m = 7
-X_binned = []; Y_binned = []
+    X = bins(A, resolution=resolution)
+    Y = bins(B[lag:360+lag], resolution=resolution)
+    W = Hdtw(X, Y, resolution=resolution)
+    L1 = resolution*np.abs(lag_by_path(W))
+    relerr1 = np.abs(lag - L1) / (lag + 1)
+    print("lag = {}, L = {:.2f}, relerr = {:.3}".format(lag, L1, relerr1))
 
-while X:
-    bin = []
-    for i in range(n):
-        element = X.pop()
-        bin.append(element)
-    X_binned.append(bin)
+    # if relerr1 < 0.2: color = 'g'
+    # else: color = 'b'
+    RELS.append(relerr1); N+=1
+    # fig = plt.figure()
+    # X_mean = [np.mean(x) for x in X]
+    # Y_mean = [np.mean(y) for y in Y]
 
-while Y:
-    bin = []
-    for i in range(m):
-        element = X.pop()
-        bin.append(element)
-    Y_binned.append(bin)
+    # plt.hist(LAGS, color=color)
+    # plt.title("{}, {:.2f}, {:.3f}".format(lag, L1, relerr1))
 
-D = zeros((n,m))
-
-
-#       step 1
-#       Distance map comstructing
-#################################
-
-for i in range(n):
-    for j in range(m):
-        D[i,j] = np.exp(-MI(X_binned[i], Y_binned[j]))
-
-#       step 2
-#       Moves map constructing
-##############################
+    # fig = plt.figure()
+    # plt.plot(X_mean)
+    # plt.plot(Y_mean)
+    # for w in W:
+    #     plt.plot([w[0], w[1]], [X_mean[w[0]], Y_mean[w[1]]], color='r', linewidth=0.5)
+    lag += 1
 
 
-
-
-
-
-
-
-
-
-
-i = n - 1; j = m-1
-
-
-
+plt.hist(RELS)
+plt.show()
+print(REL/N)
 
 
 

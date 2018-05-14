@@ -1,8 +1,16 @@
 import csv
 import numpy as np
-from scipy import stats
 from fastdtw import fastdtw as FDTW
 from scipy.spatial.distance import euclidean
+import random
+from sklearn.metrics import mutual_info_score as I
+from functions import Hdtw, bins, lag_by_path, bins
+from matplotlib import pyplot as plt
+from functions import d as D
+
+import csv
+import numpy as np
+from scipy import stats
 import random
 
 ###
@@ -13,9 +21,11 @@ input_file = open('input_signal_peak.csv', 'r')
 reader = csv.reader(input_file)
 for row in reader:
     input_peak = [float(k) for k in row]
+
 input_file.close()
 
-N = 10                                  ## Volume of series
+
+N = 20                                  ## Volume of series
 signal_len = len(input_peak)            ## Volume of signal
 K = 100                                 ## Number of generated series
 
@@ -31,27 +41,32 @@ for j in range(signal_len):
 ### Generating K time series with random lags and random noise with Gauss's destribution function
 ###
 
-Q = 0
+RELS = []
+VARS = []
+Q = 0.
 for i in range(K):
-    lag = random.randint(0, N - signal_len - 1)
+
+    lag = random.randint(1, N - signal_len - 1)
     random_series = np.zeros(N)
-    for j in range(signal_len):
-        random_series[lag + j] = input_peak[j]
+    for j in range(signal_len): random_series[lag + j] = input_peak[j]
     r = stats.norm.rvs(size = N)
-    for j in range(N):
-        random_series[j] = random_series[j] + r[j]/10
-    [dist, path] = FDTW(nolag_series, random_series, dist=euclidean)
-    A = []; B = []; diff = []
+    for j in range(N): random_series[j] += r[j]/10
 
-    for p in path:
-        A.append(p[0])
-        B.append([1])
-        diff = p[0] - p[1]
-        result = path
+    [s, path] = FDTW(nolag_series, random_series, dist=euclidean)
+    diffs = [p[1] - p[0] for p in path]
+    var = np.var(diffs)
+    VARS.append(var)
+    L = np.abs(lag_by_path(path))
+    L = np.abs(lag_by_path(path[int(L) : len(path) - int(L)]))
+    L = np.abs(lag_by_path(path[int(L) : len(path) - int(L)]))
 
-    E = np.abs(np.average(diff))
-    #print("Average: " + str(E) + "    Real generated lag: " + str(lag))
-    estimated_lag = (np.floor(E)) * 2
-    if np.abs(estimated_lag - lag) < 2:
-        Q += 1
-print(Q)
+    rel = np.abs(L - lag)/(lag)
+    #print("L = {:.2f},\t lag = {}, \t RE= {:.3f}".format(L,lag, rel))
+    Q += rel
+    RELS.append(rel)
+
+print("Accuracy ~ "+ str(int(100 - Q/K*100)) + "%")
+plt.hist(RELS)
+fig = plt.figure()
+plt.scatter(VARS,RELS)
+plt.show()

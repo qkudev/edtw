@@ -1,23 +1,25 @@
 import numpy as np
 from sklearn.metrics import mutual_info_score as I
-from scipy import stats
-from numpy import zeros
 
+def d(X,Y): return I(X,X) + I(Y,Y) - 2*I(X,Y)
 
+def D(X,Y):
+    Ix = I(X,X)
+    Iy = I(Y,Y)
+    Ixy = I(X,Y)
 
-def H(X):
-    probs = [np.mean(X == c) for c in set(X)]
-    return np.sum(-p * np.log2(p) for p in probs)
+    return 1. - Ixy/(Ix + Iy - Ixy)
 
+def lag_by_path(path):
+    lag = 0.
+    k = 0
 
-def H(X, Y):
-    probs = []
-    for c1 in set(X):
-        for c2 in set(Y):
-            probs.append(np.mean(np.logical_and(X == c1, Y == c2)))
-
-    return np.sum(-p * np.log2(p) for p in probs)
-
+    for pair in path:
+        difference = pair[0] - pair[1]
+        lag += difference
+        if difference != 0: k += 1
+    if k == 0: return 0
+    return lag / k
 
 def bins(series, resolution = 30):
     n  = len(series)
@@ -29,63 +31,57 @@ def bins(series, resolution = 30):
 
     return binned
 
+def Hdtw(X, Y, resolution = 10):
 
-def d(X,Y):
-    return H(X,Y) - I(X,Y)
+    n = len(X)
+    m = len(Y)
 
+    ### 1. Building distance matrix
 
-def D(X,Y):
-    return d(X,Y)/H(X,Y)
+    DistanceMatrix = np.zeros((n, m))
+    Map = np.zeros((n, m))
+    max_i = 0; max_j = 0; Max = 1000000.
+    for i in range(n):
+        for j in range(m):
+            Distance = d(X[i], Y[j])
+            DistanceMatrix[i, j] = Distance
+            if Distance < Max:
+                max_i = i; max_j = j; Max = Distance
 
+            Map[i, j] = DistanceMatrix[i, j]
+            if i == 0 and j > 0: Map[i, j] += Map[i, j - 1]
+            if j == 0 and i > 0: Map[i, j] += Map[i - 1, j]
 
-def normalize(X):
-    return np.exp(X)/(np.exp(X) + 1)
+    ### 2. Building Map
 
-def subsets(X):
-    res = []
-    for i in range(len(X)):
-        for j in range(len(X) - i):
-            subset = []
-            for k in range(i + 1):
-                subset.append(X[j + k])
-            res.append(subset)
-    return res
+    for i in range(1, n):
+        for j in range(1, m):
+            Map[i, j] += np.min([Map[i - 1, j], Map[i - 1, j - 1], Map[i, j - 1]])
 
+    ### 3. Searching path
 
-# def origin(X,Y, lagmax):
-#     Imax = 0
-#     lag = 0
-#     N = len(Y)
-#     result = []
-#     for i in range(lagmax):
-#
-#         I = I(X[lag:], Y[:N - lag])
-#         result.append((i, I))
-#         if Imax < I:
-#             lag = i
-#             Imax = I
-#     return [result, Imax, lag]
+    i = n - 1
+    j = m - 1
+    path = [(i, j)]
+    score = Map[i, j]
 
+    while i != 0 and j != 0:
+        Min = np.min([Map[i - 1, j], Map[i - 1, j - 1], Map[i, j - 1]])
+        if Min == Map[i - 1, j - 1]:
+            i -= 1
+            j -= 1
+        else:
+            if Min == Map[i - 1, j]: i -= 1
+            else: j -= 1
+        score += Map[i, j]
+        path.append((i, j))
 
-def EMC(X, Y):
-    return np.exp(-I(X, Y))
+    while i != 0 or j != 0:
+        if i != 0: i -= 1
+        else: j -= 1
+        score += Map[i, j]
+        path.append((i, j))
 
-def nozero_mean(X):
-    sum = 0; count = 1
-    for x in X:
-        sum += x
-        if x != 0: count += 1
-    return sum/count
+    path.reverse()
 
-def MI_lag(X, Y, max, T=False):
-    MAX = I(X, Y)
-    lag = 0
-    ALL = [MAX]
-
-    for i in range(1, max):
-        I_lagged = I(X[i:], Y[:len(Y) - i])
-        ALL.append(I_lagged)
-        if I_lagged > MAX:
-            MAX = I_lagged
-            lag = i
-    return [ALL, MAX, lag]
+    return [path, DistanceMatrix]
