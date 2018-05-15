@@ -1,133 +1,82 @@
-from numpy import sum, log2, mean, logical_and, exp
 import numpy as np
-from sklearn.metrics import mutual_info_score as MI
-from time import time
+from sklearn.metrics import mutual_info_score as I
 
 
 
+def d(X,Y):
+    return I(X,X) + I(Y,Y) - 2*I(X,Y)
 
+def D(X,Y):
+    Ixy = I(X,Y)
+    return 1. - Ixy / ( I(X,X) + I(Y,Y) - Ixy )
 
-def entropy(X, Y):
-    probs = []
-    for c1 in set(X):
-        for c2 in set(Y): probs.append(mean(logical_and(X == c1, Y == c2)))
-
-    return sum(-p * log2(p) for p in probs)
-
-
-def MI_lag(X, Y, max, T=False):
-    ctime = time()
-    MAX = MI(X, Y)
-    lag = 0
-
-    ALL = []
-
-    for i in range(1, max):
-        dist_lag = MI(X[i:], Y[:len(Y) - i])
-        #ALL.append(dist_lag)
-        if dist_lag > MAX:
-            MAX = dist_lag
-            lag = i
-
-    if T: return [lag, time() - ctime]
-    #return [ALL, lag]
-    return lag
-
-
-def path_lag(path):
-    lag = 0
-    sum = 0.;
+def lag_by_path(path):
+    lag = 0.
     k = 0
-    MAX = 0
 
-    for p in path:
-        difference = abs(p[0] - p[1])
-        if difference == 0: k += 1
-        if abs(MAX) < difference:
-            MAX = p[0] - p[1]
-        sum += difference
-        lag = sum/(len(path) - k)
+    for pair in path:
+        difference = pair[0] - pair[1]
+        lag += difference
+        if difference != 0: k += 1
 
-    # for i in range(int(lag/2), len(path) - int(lag/2)):
-    #     difference = abs(path[i][0] - path[i][1])
-    #     if difference == 0: k += 1
-    #     sum += difference
-    #     lag = sum / (len(path) -int(lag) -k)
+    if k == 0: return 0
+    return lag / k
 
-    return [ lag, MAX ]
+def bins(series, resolution = 30):
+    n = len(series)
+    binned = []
+    for i in range(n // resolution):
+        bin = []
+        for j in range(resolution): bin.append( series[i * resolution + j] )
+        binned.append(bin)
+    return binned
 
-def path_lag2(path):
-    lags = []
-    lag = []
-    MAX = 0
+def Hdtw(X, Y, resolution = 10):
 
-    for p in path:
-        difference = abs(p[0] - p[1])
+    n = len(X)
+    m = len(Y)
 
-        if difference == 0 and len(lag) != 0:
-            lags.append(np.mean(lag))
-            lag = []
+    ### 1. Building distance matrix
+
+    DistanceMatrix = np.zeros((n, m))
+    Map = np.zeros((n, m))
+    for i in range(n):
+        for j in range(m):
+            Distance = d(X[i], Y[j])
+            DistanceMatrix[i, j] = Distance
+            Map[i, j] = DistanceMatrix[i, j]
+            if i == 0 and j > 0: Map[i, j] += Map[i, j - 1]
+            if j == 0 and i > 0: Map[i, j] += Map[i - 1, j]
+
+    ### 2. Building Map
+
+    for i in range(1, n):
+        for j in range(1, m):
+            Map[i, j] += np.min([Map[i - 1, j], Map[i - 1, j - 1], Map[i, j - 1]])
+
+    ### 3. Searching path
+
+    i = n - 1
+    j = m - 1
+    path = [(i, j)]
+    score = Map[i, j]
+
+    while i != 0 and j != 0:
+        Min = np.min([Map[i - 1, j], Map[i - 1, j - 1], Map[i, j - 1]])
+        if Min == Map[i - 1, j - 1]:
+            i -= 1
+            j -= 1
         else:
-            lag.append(difference)
-        if abs(MAX) < difference:
-            MAX = p[0] - p[1]
+            if Min == Map[i - 1, j]: i -= 1
+            else: j -= 1
+        score += Map[i, j]
+        path.append((i, j))
 
+    while i != 0 or j != 0:
+        if i != 0: i -= 1
+        else: j -= 1
+        score += Map[i, j]
+        path.append((i, j))
 
-        # for i in range(int(lag/2), len(path) - int(lag/2)):
-        #     difference = abs(path[i][0] - path[i][1])
-        #     if difference == 0: k += 1
-        #     sum += difference
-        #     lag = sum / (len(path) -int(lag) -k)
-
-    return [lags, MAX]
-
-    # for p in path:
-    #     sum += p[0] - p[1]
-    # return sum/len(path)
-
-# def DTW(X,Y, distance, lag=False, T=False):
-#     ctime = time()
-#     D = zeros((len(X), len(Y)), dtype=float64)
-#     p = array([len(X) - 1, len(Y) - 1])
-#     result = []
-#
-#     for i in range(len(X)):
-#         for j in range(len(Y)):
-#             D[i,j] = power(abs(X[i] - Y[j]), distance)
-#             D[i,j] += (i==0 and j!=0)*D[0,j-1]
-#             D[i,j] += (i!=0 and j==0)*D[i-1,0]
-#             D[i,j] += (i!=0 and j!=0)*min([ D[i - 1][j], D[i - 1][j - 1], D[i][j - 1] ] )
-#
-#
-#     while p[0] != 0 and p[1] != 0:
-#         result.append([p[0], p[1]])
-#         if abs(p[0] - p[1]) > 12:
-#             p -= array([1,1])
-#             continue
-#         if p[0] == 0 or p[1] == 0: break
-#         p -= step(D[p[0] - 1, p[1]], D[p[0] - 1, p[1] - 1], D[p[0], p[1] - 1])
-#
-#
-#     while p[0] != 0 or p[1] != 0:
-#         result.append([p[0], p[1]])
-#         if p[0] != 0: p[0] -= 1
-#         else: p[1] -= 1
-#
-#
-#     result.append([0, 0])
-#     result.reverse()
-#
-#     if lag:
-#         diffs = []
-#         for r in result:    diffs.append(r[0] - r[1])
-#         if T: return [E(diffs), time() - ctime]
-#         return E(diffs)
-#
-#     if T: return [result, time() - ctime]
-#     return result
-#
-# def step(left, left_up, up):
-#     if left_up <= left and left_up <= up: return array([1,1])
-#     elif left <= left_up and left <= up: return array([1,0])
-#
-#     return array([0,1])
+    path.reverse()
+    return [path, DistanceMatrix]
