@@ -1,15 +1,14 @@
 import numpy as np
 from sklearn.metrics import mutual_info_score as I
-from scipy.stats import entropy
 
-def d(X,Y): return I(X,X) + I(Y,Y) - 2*I(X,Y)
+
+
+def d(X,Y):
+    return I(X,X) + I(Y,Y) - 2*I(X,Y)
 
 def D(X,Y):
-    Ix = I(X,X)
-    Iy = I(Y,Y)
     Ixy = I(X,Y)
-
-    return 1. - Ixy/(Ix + Iy - Ixy)
+    return 1. - Ixy / ( I(X,X) + I(Y,Y) - Ixy )
 
 def lag_by_path(path):
     lag = 0.
@@ -19,17 +18,17 @@ def lag_by_path(path):
         difference = pair[0] - pair[1]
         lag += difference
         if difference != 0: k += 1
+
     if k == 0: return 0
     return lag / k
 
 def bins(series, resolution = 30):
-    n  = len(series)
+    n = len(series)
     binned = []
     for i in range(n // resolution):
         bin = []
         for j in range(resolution): bin.append( series[i * resolution + j] )
         binned.append(bin)
-
     return binned
 
 def Hdtw(X, Y, resolution = 10):
@@ -41,14 +40,10 @@ def Hdtw(X, Y, resolution = 10):
 
     DistanceMatrix = np.zeros((n, m))
     Map = np.zeros((n, m))
-    max_i = 0; max_j = 0; Max = 1000000.
     for i in range(n):
         for j in range(m):
             Distance = d(X[i], Y[j])
             DistanceMatrix[i, j] = Distance
-            if Distance < Max:
-                max_i = i; max_j = j; Max = Distance
-
             Map[i, j] = DistanceMatrix[i, j]
             if i == 0 and j > 0: Map[i, j] += Map[i, j - 1]
             if j == 0 and i > 0: Map[i, j] += Map[i - 1, j]
@@ -84,5 +79,4 @@ def Hdtw(X, Y, resolution = 10):
         path.append((i, j))
 
     path.reverse()
-
     return [path, DistanceMatrix]
