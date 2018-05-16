@@ -1,7 +1,16 @@
 import numpy as np
 from sklearn.metrics import mutual_info_score as I
 
+def EMC(X,Y,T):
+    MaxI = 0.
+    lag = 0
+    for i in range(T):
+        MI = I(X[i:], Y[:len(Y) - i])
+        if MI > MaxI:
+            MaxI = MI
+            lag = i
 
+    return [MaxI, lag]
 
 def d(X,Y):
     return I(X,X) + I(Y,Y) - 2*I(X,Y)
@@ -31,7 +40,7 @@ def bins(series, resolution = 30):
         binned.append(bin)
     return binned
 
-def Hdtw(X, Y, resolution = 10):
+def Hdtw(X, Y):
 
     n = len(X)
     m = len(Y)
