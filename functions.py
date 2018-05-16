@@ -20,7 +20,7 @@ def lag_by_path(path):
         if difference != 0: k += 1
 
     if k == 0: return 0
-    return lag / k
+    return lag / (k)
 
 def bins(series, resolution = 30):
     n = len(series)

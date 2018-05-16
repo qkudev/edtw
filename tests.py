@@ -13,11 +13,11 @@ for row in reader:
 input_file.close()
 
 
-N = 50                                  ## Volume of series
+N = 40                                  ## Volume of series
 signal_len = len(input_peak)            ## Volume of signal
-K = 100                                 ## Number of generated series
+K = 10                                 ## Number of generated series
 
-res = 10
+res = 4
 
 ###
 ### Generating no-lag time series with one peak from input_signal_peak.csv
@@ -52,46 +52,43 @@ for i in range(K):
 
     diffs = [p[1] - p[0] for p in Path]
     Variance = np.var(diffs)
-    L = np.abs(res * lag_by_path(Path))
+    #L = np.abs(res * lag_by_path(Path))
+    L = 2*np.abs(res*np.mean(diffs))
 
-    if Variance == 0:
-
-        X = bins(nolag_series, res//2)
-        Y = bins(random_series, res//2)
-
-        [Path, Map] = Hdtw(X, Y, res // 2)
-        diffs = [p[1] - p[0] for p in Path]
-        Variance = np.var(diffs)
-        L = np.abs(res // 2 * lag_by_path(Path))
+    # if Variance == 0:
+    #     X = bins(nolag_series, res//2)
+    #     Y = bins(random_series, res//2)
+    #
+    #     [Path, Map] = Hdtw(X, Y, res // 2)
+    #     diffs = [p[1] - p[0] for p in Path]
+    #     Variance = np.var(diffs)
+    #     L = np.abs(res // 2 * lag_by_path(Path))
 
     RelError = np.abs(1. - L / Lag)
 
-    fig = plt.figure()
-    plt.plot(nolag_series)
-    plt.plot(random_series)
+    # fig = plt.figure()
+    # plt.plot(nolag_series)
+    # plt.plot(random_series)
+    #
+    # # fig = plt.figure()
+    # # plt.imshow(Map, cmap='viridis', interpolation='nearest')
 
-    fig = plt.figure()
-    plt.imshow(Map, cmap='viridis', interpolation='nearest')
-
-    if Variance != 0:
-        RELS.append(RelError)
-        VARS.append(Variance)
-        LAGS.append(Lag)
-        print("Relative Error:\t{:.0%},\t\t"
-              "Variance:\t{:.2f}\t\tlag: {}".format(RelError, Variance, Lag))
-        norm_vars.append(Lag)
-    else:
-        zero_vars.append(Lag)
+    if Variance == 0: print('PEZDA')
+    RELS.append(RelError)
+    VARS.append(Variance)
+    LAGS.append(Lag)
+    print("Relative Error:\t{:.0%},\t\t"
+          "Variance:\t{:.2f}\t\tlag: {}\t L: {:.2f}".format(RelError, Variance, Lag, L))
 
 
 ### OUTPUT ALL
 ################################################################################################
 
+print("Mean RELS:\t{0:.2f}".format(np.mean(RELS)))
 print("\n\nMean accuracy:\t{:.0%} of\t{}".format(1. - np.mean(RELS), len(RELS)))
 print("Wrong:\t{:.0%}".format(float(len(zero_vars))/K))
 
-plt.hist(zero_vars, color='r')
-plt.hist(norm_vars, color='g')
+# plt.hist(norm_vars, color='g')
 
 fig = plt.figure()
 plt.hist(RELS)
